@@ -109,7 +109,7 @@ scull_trim (struct scull_dev *dev)
   while (!list_empty (&dev->data))
     list_del (&d->list);
 
-    /** Initialise items here */
+  /** Initialise items here */
   dev->size = 0;
   dev->quantum = scull_quantum;
   dev->qset = scull_qset;
@@ -121,11 +121,31 @@ struct scull_qset *
 scull_follow (struct scull_dev *dev, int n)
 {
 
-  struct scull_qset *dptr = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
-  dptr->data = NULL;
-  list_add (&dptr->list, &dev->data);
+  struct list_head *dptr;
+  struct scull_qset *d;
 
-  return dptr;
+  /* Allocate first qset explicitly if need be */
+#if 0
+  if (list_empty (&dev->data))
+    LIST_HEAD_INIT (dev->data);
+#endif
+
+  /* Then follow the list */
+  list_for_each (dptr, &dev->data)
+  {
+    if (n-- == 0)
+      return list_entry (dptr, struct scull_qset, list);
+  }
+
+  d = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
+
+  if (d == NULL)
+    return NULL;                /* Never mind */
+
+  memset (d, 0, sizeof (struct scull_qset));
+  list_add (&d->list, &dev->data);
+
+  return d;
 }
 
 
