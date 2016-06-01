@@ -14,7 +14,6 @@
 #include <linux/sysfs.h>
 #include <linux/init.h>
 
-
 struct scull_dev
 {
   struct scull_qset *data;      /* Pointer to first quantum set */
@@ -30,9 +29,9 @@ struct scull_qset
   struct scull_qset *next;
 };
 
-
 #define SCULL_QUANTUM 4000
 #define SCULL_QSET    1000
+
 int scull_major;
 int scull_minor = 0;
 int scull_quantum = SCULL_QUANTUM;
@@ -40,8 +39,6 @@ int scull_qset = SCULL_QSET;
 
 struct scull_dev *scull_device;
 struct class *cl;
-
-
 
 /*
  * The "foo" file where a static variable is read from and written to.
@@ -90,7 +87,6 @@ static struct attribute_group attr_group = {
 };
 
 static struct kobject *scull_kobj;
-
 
 int
 scull_trim (struct scull_dev *dev)
@@ -166,7 +162,6 @@ scull_release (struct inode *inode, struct file *filp)
 {
   return 0;
 }
-
 
 ssize_t
 scull_read (struct file * filp, char __user * buf,
@@ -290,7 +285,6 @@ scull_cleanup_module (void)
   kobject_put (scull_kobj);
 }
 
-
 int
 scull_init_module (void)
 {
@@ -354,8 +348,6 @@ scull_init_module (void)
   if (retval)
     kobject_put (scull_kobj);
 
-
-
   return retval;                /* succeed */
 
 fail:
@@ -365,7 +357,6 @@ fail:
 
 module_init (scull_init_module);
 module_exit (scull_cleanup_module);
-
 
 MODULE_LICENSE ("GPL");
 MODULE_DESCRIPTION ("Our First Character Driver");
