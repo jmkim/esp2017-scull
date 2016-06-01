@@ -14,23 +14,25 @@
 #include <linux/sysfs.h>
 #include <linux/init.h>
 
+#include <linux/list.h>
+
 struct scull_dev
 {
-  struct scull_qset *data;      /* Pointer to first quantum set */
   int quantum;                  /* the size of each quantum */
   int qset;                     /* the number of quantum in a qset */
   int size;                     /* amount of data stored here */
   struct cdev cdev;             /* Char device structure      */
+  struct list_head data;
 };
 
 struct scull_qset
 {
   void **data;
-  struct scull_qset *next;
+  struct list_head list;
 };
 
-#define SCULL_QUANTUM 4000
-#define SCULL_QSET    1000
+#define SCULL_QUANTUM   4000
+#define SCULL_QSET      1000
 
 int scull_major;
 int scull_minor = 0;
@@ -46,7 +48,7 @@ struct class *cl;
 static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf (buf, "The size is %d and the number of qset is %d.\n",
+  return sprintf (buf, "The size is %d and the number of quantum is %d.\n",
                   scull_device->size, scull_device->qset);
 }
 
@@ -91,54 +93,39 @@ static struct kobject *scull_kobj;
 int
 scull_trim (struct scull_dev *dev)
 {
-  struct scull_qset *next, *dptr;
-  int qset = dev->qset;         /* "dev" is not-null */
+  struct list_head *dptr;
+  struct scull_qset *d;
   int i;
-  for (dptr = dev->data; dptr; dptr = next)
-    {                           /* all the list items */
-      if (dptr->data)
-        {
-          for (i = 0; i < qset; i++)
-            kfree (dptr->data[i]);
-          kfree (dptr->data);
-          dptr->data = NULL;
-        }
-      next = dptr->next;
-      kfree (dptr);
-    }
+
+  list_for_each (dptr, &dev->data)
+  {
+    d = list_entry (dptr, struct scull_qset, list);
+    for (i = 0; i < dev->qset; ++i)
+      kfree (d->data[i]);
+    kfree (d->data);
+  }
+
+  dptr = &dev->data;
+  while (!list_empty (&dev->data))
+    list_del (&d->list);
+
+    /** Initialise items here */
   dev->size = 0;
   dev->quantum = scull_quantum;
   dev->qset = scull_qset;
-  dev->data = NULL;
+
   return 0;
 }
 
 struct scull_qset *
 scull_follow (struct scull_dev *dev, int n)
 {
-  struct scull_qset *qs = dev->data;
-  /* Allocate first qset explicitly if need be */
-  if (!qs)
-    {
-      qs = dev->data = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
-      if (qs == NULL)
-        return NULL;            /* Never mind */
-      memset (qs, 0, sizeof (struct scull_qset));
-    }
-  /* Then follow the list */
-  while (n--)
-    {
-      if (!qs->next)
-        {
-          qs->next = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
-          if (qs->next == NULL)
-            return NULL;        /* Never mind */
-          memset (qs->next, 0, sizeof (struct scull_qset));
-        }
-      qs = qs->next;
-      continue;
-    }
-  return qs;
+
+  struct scull_qset *dptr = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
+  dptr->data = NULL;
+  list_add (&dptr->list, &dev->data);
+
+  return dptr;
 }
 
 
@@ -317,8 +304,10 @@ scull_init_module (void)
     }
   memset (scull_device, 0, sizeof (struct scull_dev));
 
+    /** Initialise scull_device here */
   scull_device->quantum = scull_quantum;
   scull_device->qset = scull_qset;
+  scull_device->size = 0;
 
   cdev_init (&(scull_device->cdev), &scull_fops);
   scull_device->cdev.owner = THIS_MODULE;
