@@ -7,7 +7,7 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <asm/uaccess.h>
-#include <linux/slab.h>         /* kmalloc() */
+#include <linux/slab.h>         /** kmalloc() */
 
 #include <linux/kobject.h>
 #include <linux/string.h>
@@ -18,10 +18,10 @@
 
 struct scull_dev
 {
-  int quantum;                  /* the size of each quantum */
-  int qset;                     /* the number of quantum in a qset */
-  int size;                     /* amount of data stored here */
-  struct cdev cdev;             /* Char device structure      */
+  int quantum;                  /** The size of each quantum */
+  int qset;                     /** The number of quantum in a qset */
+  int size;                     /** Amount of data stored here */
+  struct cdev cdev;             /** Char device structure      */
   struct list_head data;
 };
 
@@ -42,9 +42,7 @@ int scull_qset = SCULL_QSET;
 struct scull_dev *scull_device;
 struct class *cl;
 
-/*
- * The "foo" file where a static variable is read from and written to.
- */
+/** Buffer which is stored in "/sys/kernel/stat" */
 static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -65,31 +63,32 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
   return count;
 }
 
-/* Sysfs attributes cannot be world-writable. */
+/** Sysfs attributes cannot be world-writable. */
 static struct kobj_attribute stat_attribute =
 __ATTR (stat, 0664, scull_obj_show, scull_obj_store);
 
-/*
- * Create a group of attributes so that we can create and destroy them all
- * at once.
- */
+/** \brief  Create a group of attributes
+
+    Create a group of attributes so that we can create and destroy them all
+    at once
+*/
 static struct attribute *attrs[] = {
   &stat_attribute.attr,
-  NULL,                         /* need to NULL terminate the list of attributes */
+  NULL,                         /** Need to NULL terminate the list of attributes */
 };
 
-/*
- * An unnamed attribute group will put all of the attributes directly in
- * the kobject directory.  If we specify a name, a subdirectory will be
- * created for the attributes with the directory being the name of the
- * attribute group.
- */
+/** An unnamed attribute group will put all of the attributes directly in
+    the kobject directory. If we specify a name, a subdirectory will be
+    created for the attributes with the directory being the name of the
+    attribute group.
+*/
 static struct attribute_group attr_group = {
   .attrs = attrs,
 };
 
 static struct kobject *scull_kobj;
 
+/** Clean up all devices */
 int
 scull_trim (struct scull_dev *dev)
 {
@@ -117,6 +116,13 @@ scull_trim (struct scull_dev *dev)
   return 0;
 }
 
+/** Get a set of quantum
+
+    \return     Pointer of a set of quantum (make a set if not available)
+    \param[in]  dev     Device structure
+    \param[in]  n       Count, from the first
+
+*/
 struct scull_qset *
 scull_follow (struct scull_dev *dev, int n)
 {
@@ -124,13 +130,13 @@ scull_follow (struct scull_dev *dev, int n)
   struct list_head *dptr;
   struct scull_qset *d;
 
-  /* Allocate first qset explicitly if need be */
+  /** Allocate first qset explicitly if need be */
 #if 0
   if (list_empty (&dev->data))
-    LIST_HEAD_INIT (dev->data);
+    LIST_HEAD_INIT (dev->data); /** TODO: LIST_HEAD_INIT - NOT WORKING */
 #endif
 
-  /* Then follow the list */
+  /** Then follow the list */
   list_for_each (dptr, &dev->data)
   {
     if (n-- == 0)
@@ -140,7 +146,7 @@ scull_follow (struct scull_dev *dev, int n)
   d = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
 
   if (d == NULL)
-    return NULL;                /* Never mind */
+    return NULL;                /** Never mind */
 
   memset (d, 0, sizeof (struct scull_qset));
   list_add (&d->list, &dev->data);
@@ -152,16 +158,16 @@ scull_follow (struct scull_dev *dev, int n)
 int
 scull_open (struct inode *inode, struct file *filp)
 {
-  struct scull_dev *dev;        /* device information */
+  struct scull_dev *dev;        /** device information */
   dev = container_of (inode->i_cdev, struct scull_dev, cdev);
-  filp->private_data = dev;     /* for other methods */
+  filp->private_data = dev;     /** For other methods */
 
-  /* trim to 0 the length of the device if open was write-only */
+  /** Trim to 0 the length of the device if open was write-only */
   if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
       scull_trim (dev);
     }
-  return 0;                     /* success */
+  return 0;                     /** Success */
 }
 
 int
@@ -175,9 +181,9 @@ scull_read (struct file * filp, char __user * buf,
             size_t count, loff_t * f_pos)
 {
   struct scull_dev *dev = filp->private_data;
-  struct scull_qset *dptr;      /* the first listitem */
+  struct scull_qset *dptr;      /** The first listitem */
   int quantum = dev->quantum, qset = dev->qset;
-  int itemsize = quantum * qset;        /* how many bytes in the listitem */
+  int itemsize = quantum * qset;        /** How many bytes in the listitem */
   int item, s_pos, q_pos, rest;
   ssize_t retval = 0;
   if (*f_pos >= dev->size)
@@ -185,18 +191,18 @@ scull_read (struct file * filp, char __user * buf,
   if (*f_pos + count > dev->size)
     count = dev->size - *f_pos;
 
-  /* find listitem, qset index, and offset in the quantum */
+  /** Find listitem, qset index, and offset in the quantum */
   item = (long) *f_pos / itemsize;
   rest = (long) *f_pos % itemsize;
   s_pos = rest / quantum;
   q_pos = rest % quantum;
-  /* follow the list up to the right position (defined elsewhere) */
+  /** Follow the list up to the right position (defined elsewhere) */
   dptr = scull_follow (dev, item);
 
   if (dptr == NULL || !dptr->data || !dptr->data[s_pos])
-    goto out;                   /* don't fill holes */
+    goto out;                   /** Don't fill holes */
 
-  /* read only up to the end of this quantum */
+  /** Read only up to the end of this quantum */
   if (count > quantum - q_pos)
     count = quantum - q_pos;
 
@@ -219,16 +225,16 @@ scull_write (struct file * filp, const char __user * buf,
   struct scull_dev *dev = filp->private_data;
   struct scull_qset *dptr;
   int quantum = dev->quantum, qset = dev->qset;
-  int itemsize = quantum * qset;        /* size of each qset */
+  int itemsize = quantum * qset;        /** Size of each qset */
   int item, s_pos, q_pos, rest;
-  ssize_t retval = -ENOMEM;     /* value used in "goto out" statements */
-  /* find listitem, qset index and offset in the quantum */
-  item = (long) *f_pos / itemsize;      /* item-th qset */
-  rest = (long) *f_pos % itemsize;      /* rest-th byte in the item’s qset */
-  s_pos = rest / quantum;       /* s_pos-th quantum */
-  q_pos = rest % quantum;       /* q_pos-th byte in the quantum */
+  ssize_t retval = -ENOMEM;     /** Value used in "goto out" statements */
+  /** Find listitem, qset index and offset in the quantum */
+  item = (long) *f_pos / itemsize;      /** item-th qset */
+  rest = (long) *f_pos % itemsize;      /** rest-th byte in the item’s qset */
+  s_pos = rest / quantum;       /** s_pos-th quantum */
+  q_pos = rest % quantum;       /** q_pos-th byte in the quantum */
 
-  /* follow the list up to the right position */
+  /** Follow the list up to the right position */
   dptr = scull_follow (dev, item);
   if (dptr == NULL)
     goto out;
@@ -245,7 +251,7 @@ scull_write (struct file * filp, const char __user * buf,
       if (!dptr->data[s_pos])
         goto out;
     }
-  /* write only up to the end of this quantum */
+  /** Write only up to the end of this quantum */
   if (count > quantum - q_pos)
     count = quantum - q_pos;
 
@@ -258,7 +264,7 @@ scull_write (struct file * filp, const char __user * buf,
   *f_pos += count;
   retval = count;
 
-  /* update the size */
+  /** Update the size */
   if (dev->size < *f_pos)
     dev->size = *f_pos;
 
@@ -279,7 +285,7 @@ scull_cleanup_module (void)
 {
   dev_t devno = MKDEV (scull_major, scull_minor);
 
-  /* Get rid of our char dev entries */
+  /** Get rid of our char dev entries */
   if (scull_device)
     {
       scull_trim (scull_device);
@@ -320,7 +326,7 @@ scull_init_module (void)
   if (!scull_device)
     {
       retval = -ENOMEM;
-      goto fail;                /* Make this more graceful */
+      goto fail;                /** Make this more graceful */
     }
   memset (scull_device, 0, sizeof (struct scull_dev));
 
@@ -339,25 +345,24 @@ scull_init_module (void)
       return -1;
     }
 
-  /*
-   * Create a simple kobject with the name of "scull",
-   * located under /sys/kernel/
-   *
-   * As this is a simple directory, no uevent will be sent to
-   * userspace.  That is why this function should not be used for
-   * any type of dynamic kobjects, where the name and number are
-   * not known ahead of time.
-   */
+  /** Create a simple kobject with the name of "scull",
+      located under /sys/kernel/
+
+      As this is a simple directory, no uevent will be sent to
+      userspace.  That is why this function should not be used for
+      any type of dynamic kobjects, where the name and number are
+      not known ahead of time.
+  */
   scull_kobj = kobject_create_and_add ("scull", kernel_kobj);
   if (!scull_kobj)
     return -ENOMEM;
 
-  /* Create the files associated with this kobject */
+  /** Create the files associated with this kobject */
   retval = sysfs_create_group (scull_kobj, &attr_group);
   if (retval)
     kobject_put (scull_kobj);
 
-  return retval;                /* succeed */
+  return retval;                /** Succeess */
 
 fail:
   scull_cleanup_module ();
