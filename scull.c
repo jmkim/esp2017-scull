@@ -64,8 +64,8 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 /** Sysfs attributes cannot be world-writable. */
-static struct kobj_attribute scull_attribute =
-__ATTR (scull_device, 0664, scull_obj_show, scull_obj_store);
+static struct kobj_attribute stat_attribute =
+__ATTR (stat, 0664, scull_obj_show, scull_obj_store); /* file name is "stat"*/
 
 /** \brief  Create a group of attributes
 
@@ -73,7 +73,7 @@ __ATTR (scull_device, 0664, scull_obj_show, scull_obj_store);
     at once
 */
 static struct attribute *attrs[] = {
-  &scull_attribute.attr,
+  &stat_attribute.attr,
   NULL,                         /** Need to NULL terminate the list of attributes */
 };
 
