@@ -32,7 +32,7 @@ struct scull_qset
 };
 
 #define SCULL_QUANTUM   4000
-#define SCULL_QSET      1000
+#define SCULL_QSET      1
 
 int scull_major;
 int scull_minor = 0;
@@ -60,7 +60,8 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
   if (ret < 0)
     return ret;
 
-  return count;
+  //return count;
+  return ret;
 }
 
 /** Sysfs attributes cannot be world-writable. */
@@ -93,20 +94,19 @@ int
 scull_trim (struct scull_dev *dev)
 {
   struct list_head *dptr;
-  struct scull_qset *d;
   int i;
 
   list_for_each (dptr, &dev->data)
   {
-    d = list_entry (dptr, struct scull_qset, list);
-    for (i = 0; i < dev->qset; ++i) /** Error: dev->qset can be not allocated data */
+    struct scull_qset *d = list_entry (dptr, struct scull_qset, list);
+    for (i = 0; i < dev->qset; ++i) /** TODO: ERROR dev->qset can be not allocated data */
       kfree (d->data[i]);
     kfree (d->data);
   }
 
   dptr = &dev->data;
   while (!list_empty (&dev->data))
-    list_del (&d->list);
+    list_del (&dev->data);
 
   /** Initialise items here */
   dev->size = 0;
@@ -131,10 +131,8 @@ scull_follow (struct scull_dev *dev, int n)
   struct scull_qset *d;
 
   /** Allocate first qset explicitly if need be */
-#if 0
   if (list_empty (&dev->data))
-    LIST_HEAD_INIT (dev->data); /** TODO: LIST_HEAD_INIT - NOT WORKING */
-#endif
+    INIT_LIST_HEAD (&dev->data);
 
   /** Then follow the list */
   list_for_each (dptr, &dev->data)
@@ -285,6 +283,11 @@ scull_cleanup_module (void)
 {
   dev_t devno = MKDEV (scull_major, scull_minor);
 
+  if (scull_kobj)
+    {
+      kobject_put (scull_kobj);
+    }
+
   /** Get rid of our char dev entries */
   if (scull_device)
     {
@@ -295,7 +298,6 @@ scull_cleanup_module (void)
   device_destroy (cl, devno);
   class_destroy (cl);
   unregister_chrdev_region (devno, 1);
-  kobject_put (scull_kobj);
 }
 
 int
@@ -325,15 +327,17 @@ scull_init_module (void)
   scull_device = kmalloc (sizeof (struct scull_dev), GFP_KERNEL);
   if (!scull_device)
     {
-      retval = -ENOMEM;
-      goto fail;                /** Make this more graceful */
+      class_destroy (cl);
+      unregister_chrdev_region (dev, 1);
+      return -ENOMEM;
     }
   memset (scull_device, 0, sizeof (struct scull_dev));
 
-    /** Initialise scull_device here */
+  /** Initialise scull_device here */
   scull_device->quantum = scull_quantum;
   scull_device->qset = scull_qset;
   scull_device->size = 0;
+  INIT_LIST_HEAD (&scull_device->data);
 
   cdev_init (&(scull_device->cdev), &scull_fops);
   scull_device->cdev.owner = THIS_MODULE;
@@ -355,18 +359,25 @@ scull_init_module (void)
   */
   scull_kobj = kobject_create_and_add ("scull", kernel_kobj);
   if (!scull_kobj)
-    return -ENOMEM;
+    {
+      device_destroy (cl, dev);
+      class_destroy (cl);
+      unregister_chrdev_region (dev, 1);
+      return -ENOMEM;
+    }
 
   /** Create the files associated with this kobject */
   retval = sysfs_create_group (scull_kobj, &attr_group);
   if (retval)
-    kobject_put (scull_kobj);
+    {
+      kobject_put (scull_kobj);
+      device_destroy (cl, dev);
+      class_destroy (cl);
+      unregister_chrdev_region (dev, 1);
+      return retval;
+    }
 
   return retval;                /** Succeess */
-
-fail:
-  scull_cleanup_module ();
-  return retval;
 }
 
 module_init (scull_init_module);
@@ -374,3 +385,4 @@ module_exit (scull_cleanup_module);
 
 MODULE_LICENSE ("GPL");
 MODULE_DESCRIPTION ("Our First Character Driver");
+MODULE_AUTHOR ("Jongmin Kim <jmkim@pukyong.ac.kr>");
