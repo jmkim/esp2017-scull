@@ -60,8 +60,7 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
   if (ret < 0)
     return ret;
 
-  //return count;
-  return ret;
+  return count;
 }
 
 /** Sysfs attributes cannot be world-writable. */
