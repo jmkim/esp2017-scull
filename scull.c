@@ -103,9 +103,7 @@ scull_trim (struct scull_dev *dev)
     kfree (d->data);
   }
 
-  dptr = &dev->data;
-  while (!list_empty (&dev->data))
-    list_del (&dev->data);
+  list_del_init (&dev->data);
 
   /** Initialise items here */
   dev->size = 0;
