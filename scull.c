@@ -46,7 +46,7 @@ struct class *cl;
 static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf (buf, "The size is %d and the number of quantum is %d.\n",
+  return sprintf (buf, "The size is %d and the number of qset is %d.\n",
                   scull_device->size, scull_device->qset);
 }
 
