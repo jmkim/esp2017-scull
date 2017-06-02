@@ -58,8 +58,8 @@ static struct kobj_attribute stat_attribute = __ATTR (stat, 0444, scull_obj_show
     Create a group of attributes so that we can create and destroy them all
     at once
 */
-static struct attribute *attrs[] = {
-  &stat_attribute.attr,
+static struct attribute *scull_attrs[] = {
+  &scull_stat_attr.attr,
   NULL,				/** Need to NULL terminate the list of attributes */
 };
 
@@ -68,8 +68,8 @@ static struct attribute *attrs[] = {
     created for the attributes with the directory being the name of the
     attribute group.
 */
-static struct attribute_group attr_group = {
-  .attrs = attrs,
+static struct attribute_group scull_attr_group = {
+  .attrs = scull_attrs,
 };
 
 static struct kobject *scull_kobj;
@@ -157,9 +157,9 @@ scull_release (struct inode *inode, struct file *filp)
 }
 
 char *
-scull_devnode (struct device *dev, umode_t *mode)
+scull_devnode (struct device *dev, umode_t * mode)
 {
-  if (! mode)
+  if (!mode)
     return NULL;
 
   *mode = 0666;
@@ -360,7 +360,7 @@ scull_init_module (void)
     }
 
   /** Create the files associated with this kobject */
-  retval = sysfs_create_group (scull_kobj, &attr_group);
+  retval = sysfs_create_group (scull_kobj, &scull_attr_group);
   if (retval)
     {
       kobject_put (scull_kobj);
