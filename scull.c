@@ -50,21 +50,8 @@ scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 		  scull_device->size, scull_device->qset);
 }
 
-static ssize_t
-scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
-		 const char *buf, size_t count)
-{
-  int ret;
-
-  ret = kstrtoint (buf, 10, &scull_device->size);
-  if (ret < 0)
-    return ret;
-
-  return count;
-}
-
 /** Sysfs attributes cannot be world-writable. */
-static struct kobj_attribute stat_attribute = __ATTR (stat, 0664, scull_obj_show, scull_obj_store);	/* object name is "stat" */
+static struct kobj_attribute stat_attribute = __ATTR (stat, 0444, scull_obj_show, NULL);	/* object name is "stat" */
 
 /** \brief  Create a group of attributes
 
