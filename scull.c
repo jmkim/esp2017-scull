@@ -50,13 +50,16 @@ scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 		  scull_device->size, scull_device->qset);
 }
 
-/** Sysfs attributes cannot be world-writable. */
-static struct kobj_attribute stat_attribute = __ATTR (stat, 0444, scull_obj_show, NULL);	/* object name is "stat" */
+/** \brief  Set an attribute of kobject
+
+    Sysfs attributes cannot be world-writable.  Object name is "stat".
+*/
+static struct kobj_attribute scull_stat_attr = __ATTR (stat, 0444, scull_obj_show, NULL);
 
 /** \brief  Create a group of attributes
 
     Create a group of attributes so that we can create and destroy them all
-    at once
+    at once.
 */
 static struct attribute *scull_attrs[] = {
   &scull_stat_attr.attr,
