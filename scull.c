@@ -34,13 +34,13 @@ struct scull_qset
 #define SCULL_QUANTUM   4000
 #define SCULL_QSET      1000
 
-int scull_major;
-int scull_minor = 0;
-int scull_quantum = SCULL_QUANTUM;
-int scull_qset = SCULL_QSET;
+static int scull_major;
+static int scull_minor = 0;
+static int scull_quantum = SCULL_QUANTUM;
+static int scull_qset = SCULL_QSET;
 
-struct scull_dev *scull_device;
-struct class *cl;
+static struct scull_dev *scull_device;
+static struct class *cl;
 
 /** Buffer which is stored in "/sys/kernel/stat" */
 static ssize_t
@@ -54,7 +54,8 @@ scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 
     Sysfs attributes cannot be world-writable.  Object name is "stat".
 */
-static struct kobj_attribute scull_stat_attr = __ATTR (stat, 0444, scull_obj_show, NULL);
+static struct kobj_attribute scull_stat_attr =
+__ATTR (stat, 0444, scull_obj_show, NULL);
 
 /** \brief  Create a group of attributes
 
@@ -78,7 +79,7 @@ static struct attribute_group scull_attr_group = {
 static struct kobject *scull_kobj;
 
 /** Clean up all devices */
-int
+static int
 scull_trim (struct scull_dev *dev)
 {
   struct list_head *dptr;
@@ -109,7 +110,7 @@ scull_trim (struct scull_dev *dev)
     \param[in]  n       Count, from the first
 
 */
-struct scull_qset *
+static struct scull_qset *
 scull_follow (struct scull_dev *dev, int n)
 {
 
@@ -138,7 +139,7 @@ scull_follow (struct scull_dev *dev, int n)
   return d;
 }
 
-int
+static int
 scull_open (struct inode *inode, struct file *filp)
 {
   struct scull_dev *dev;	/** device information */
@@ -153,13 +154,13 @@ scull_open (struct inode *inode, struct file *filp)
   return 0;			/** Success */
 }
 
-int
+static int
 scull_release (struct inode *inode, struct file *filp)
 {
   return 0;
 }
 
-char *
+static char *
 scull_devnode (struct device *dev, umode_t * mode)
 {
   if (!mode)
@@ -169,8 +170,8 @@ scull_devnode (struct device *dev, umode_t * mode)
   return NULL;
 }
 
-ssize_t
-scull_read (struct file * filp, char __user * buf,
+static ssize_t
+scull_read (struct file *filp, char __user * buf,
 	    size_t count, loff_t * f_pos)
 {
   struct scull_dev *dev = filp->private_data;
@@ -211,8 +212,8 @@ out:
   return retval;
 }
 
-ssize_t
-scull_write (struct file * filp, const char __user * buf,
+static ssize_t
+scull_write (struct file *filp, const char __user * buf,
 	     size_t count, loff_t * f_pos)
 {
   struct scull_dev *dev = filp->private_data;
@@ -265,7 +266,7 @@ out:
   return retval;
 }
 
-struct file_operations scull_fops = {
+static struct file_operations scull_fops = {
   .owner = THIS_MODULE,
   .read = scull_read,
   .write = scull_write,
@@ -273,7 +274,7 @@ struct file_operations scull_fops = {
   .release = scull_release,
 };
 
-void
+static void
 scull_cleanup_module (void)
 {
   dev_t devno = MKDEV (scull_major, scull_minor);
@@ -295,7 +296,7 @@ scull_cleanup_module (void)
   unregister_chrdev_region (devno, 1);
 }
 
-int
+static int
 scull_init_module (void)
 {
 
