@@ -7,7 +7,7 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <asm/uaccess.h>
-#include <linux/slab.h>         /** kmalloc() */
+#include <linux/slab.h>		/** kmalloc() */
 
 #include <linux/kobject.h>
 #include <linux/string.h>
@@ -18,10 +18,10 @@
 
 struct scull_dev
 {
-  int quantum;                  /** The size of each quantum */
-  int qset;                     /** The number of quantum in a qset */
-  int size;                     /** Amount of data stored here */
-  struct cdev cdev;             /** Char device structure      */
+  int quantum;			/** The size of each quantum */
+  int qset;			/** The number of quantum in a qset */
+  int size;			/** Amount of data stored here */
+  struct cdev cdev;		/** Char device structure      */
   struct list_head data;
 };
 
@@ -47,12 +47,12 @@ static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
   return sprintf (buf, "The size is %d and the number of qset is %d.\n",
-                  scull_device->size, scull_device->qset);
+		  scull_device->size, scull_device->qset);
 }
 
 static ssize_t
 scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
-                 const char *buf, size_t count)
+		 const char *buf, size_t count)
 {
   int ret;
 
@@ -64,8 +64,7 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 /** Sysfs attributes cannot be world-writable. */
-static struct kobj_attribute stat_attribute =
-__ATTR (stat, 0664, scull_obj_show, scull_obj_store); /* file name is "stat"*/
+static struct kobj_attribute stat_attribute = __ATTR (stat, 0664, scull_obj_show, scull_obj_store);	/* file name is "stat" */
 
 /** \brief  Create a group of attributes
 
@@ -74,7 +73,7 @@ __ATTR (stat, 0664, scull_obj_show, scull_obj_store); /* file name is "stat"*/
 */
 static struct attribute *attrs[] = {
   &stat_attribute.attr,
-  NULL,                         /** Need to NULL terminate the list of attributes */
+  NULL,				/** Need to NULL terminate the list of attributes */
 };
 
 /** An unnamed attribute group will put all of the attributes directly in
@@ -141,7 +140,7 @@ scull_follow (struct scull_dev *dev, int n)
   d = kmalloc (sizeof (struct scull_qset), GFP_KERNEL);
 
   if (d == NULL)
-    return NULL;                /** Never mind */
+    return NULL;		/** Never mind */
 
   memset (d, 0, sizeof (struct scull_qset));
   list_add (&d->list, &dev->data);
@@ -153,16 +152,16 @@ scull_follow (struct scull_dev *dev, int n)
 int
 scull_open (struct inode *inode, struct file *filp)
 {
-  struct scull_dev *dev;        /** device information */
+  struct scull_dev *dev;	/** device information */
   dev = container_of (inode->i_cdev, struct scull_dev, cdev);
-  filp->private_data = dev;     /** For other methods */
+  filp->private_data = dev;	/** For other methods */
 
   /** Trim to 0 the length of the device if open was write-only */
   if ((filp->f_flags & O_ACCMODE) == O_WRONLY)
     {
       scull_trim (dev);
     }
-  return 0;                     /** Success */
+  return 0;			/** Success */
 }
 
 int
@@ -173,12 +172,12 @@ scull_release (struct inode *inode, struct file *filp)
 
 ssize_t
 scull_read (struct file * filp, char __user * buf,
-            size_t count, loff_t * f_pos)
+	    size_t count, loff_t * f_pos)
 {
   struct scull_dev *dev = filp->private_data;
-  struct scull_qset *dptr;      /** The first listitem */
+  struct scull_qset *dptr;	/** The first listitem */
   int quantum = dev->quantum, qset = dev->qset;
-  int itemsize = quantum * qset;        /** How many bytes in the listitem */
+  int itemsize = quantum * qset;	/** How many bytes in the listitem */
   int item, s_pos, q_pos, rest;
   ssize_t retval = 0;
   if (*f_pos >= dev->size)
@@ -195,7 +194,7 @@ scull_read (struct file * filp, char __user * buf,
   dptr = scull_follow (dev, item);
 
   if (dptr == NULL || !dptr->data || !dptr->data[s_pos])
-    goto out;                   /** Don't fill holes */
+    goto out;			/** Don't fill holes */
 
   /** Read only up to the end of this quantum */
   if (count > quantum - q_pos)
@@ -215,19 +214,19 @@ out:
 
 ssize_t
 scull_write (struct file * filp, const char __user * buf,
-             size_t count, loff_t * f_pos)
+	     size_t count, loff_t * f_pos)
 {
   struct scull_dev *dev = filp->private_data;
   struct scull_qset *dptr;
   int quantum = dev->quantum, qset = dev->qset;
-  int itemsize = quantum * qset;        /** Size of each qset */
+  int itemsize = quantum * qset;	/** Size of each qset */
   int item, s_pos, q_pos, rest;
-  ssize_t retval = -ENOMEM;     /** Value used in "goto out" statements */
+  ssize_t retval = -ENOMEM;	/** Value used in "goto out" statements */
   /** Find listitem, qset index and offset in the quantum */
-  item = (long) *f_pos / itemsize;      /** item-th qset */
-  rest = (long) *f_pos % itemsize;      /** rest-th byte in the item’s qset */
-  s_pos = rest / quantum;       /** s_pos-th quantum */
-  q_pos = rest % quantum;       /** q_pos-th byte in the quantum */
+  item = (long) *f_pos / itemsize;	/** item-th qset */
+  rest = (long) *f_pos % itemsize;	/** rest-th byte in the item’s qset */
+  s_pos = rest / quantum;	/** s_pos-th quantum */
+  q_pos = rest % quantum;	/** q_pos-th byte in the quantum */
 
   /** Follow the list up to the right position */
   dptr = scull_follow (dev, item);
@@ -237,14 +236,14 @@ scull_write (struct file * filp, const char __user * buf,
     {
       dptr->data = kmalloc (qset * sizeof (char *), GFP_KERNEL);
       if (!dptr->data)
-        goto out;
+	goto out;
       memset (dptr->data, 0, qset * sizeof (char *));
     }
   if (!dptr->data[s_pos])
     {
       dptr->data[s_pos] = kmalloc (quantum, GFP_KERNEL);
       if (!dptr->data[s_pos])
-        goto out;
+	goto out;
     }
   /** Write only up to the end of this quantum */
   if (count > quantum - q_pos)
@@ -374,7 +373,7 @@ scull_init_module (void)
       return retval;
     }
 
-  return retval;                /** Succeess */
+  return retval;		/** Succeess */
 }
 
 module_init (scull_init_module);
