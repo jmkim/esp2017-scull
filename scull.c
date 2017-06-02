@@ -32,7 +32,7 @@ struct scull_qset
 };
 
 #define SCULL_QUANTUM   4000
-#define SCULL_QSET      1
+#define SCULL_QSET      1000
 
 int scull_major;
 int scull_minor = 0;
@@ -64,7 +64,7 @@ scull_obj_store (struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 /** Sysfs attributes cannot be world-writable. */
-static struct kobj_attribute stat_attribute = __ATTR (stat, 0664, scull_obj_show, scull_obj_store);	/* file name is "stat" */
+static struct kobj_attribute stat_attribute = __ATTR (stat, 0664, scull_obj_show, scull_obj_store);	/* object name is "stat" */
 
 /** \brief  Create a group of attributes
 
