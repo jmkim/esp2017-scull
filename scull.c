@@ -135,7 +135,6 @@ scull_follow (struct scull_dev *dev, int n)
   return d;
 }
 
-
 int
 scull_open (struct inode *inode, struct file *filp)
 {
@@ -155,6 +154,16 @@ int
 scull_release (struct inode *inode, struct file *filp)
 {
   return 0;
+}
+
+char *
+scull_devnode (struct device *dev, umode_t *mode)
+{
+  if (! mode)
+    return NULL;
+
+  *mode = 0666;
+  return NULL;
 }
 
 ssize_t
@@ -301,6 +310,7 @@ scull_init_module (void)
       unregister_chrdev_region (dev, 1);
       return -1;
     }
+  cl->devnode = scull_devnode;
   if (device_create (cl, NULL, dev, NULL, "myscull") == NULL)
     {
       class_destroy (cl);
