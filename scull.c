@@ -20,7 +20,7 @@ struct scull_dev
 {
   int quantum;			/** The size of each quantum */
   int qset;			/** The number of quantum in a qset */
-  int size;			/** Amount of data stored here */
+  unsigned long size;		/** Amount of data stored here */
   struct cdev cdev;		/** Char device structure      */
   struct list_head data;
 };
@@ -46,8 +46,8 @@ static struct class *cl;
 static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-  return sprintf (buf, "The size is %d and the number of qset is %d.\n",
-		  scull_device->size, scull_device->qset);
+  return sprintf (buf, "The size is %lu and the number of qset is %d.\n",
+		  scull_device->size, number_of_qset);
 }
 
 /** \brief  Set an attribute of kobject
