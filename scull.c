@@ -46,6 +46,19 @@ static struct class *cl;
 static ssize_t
 scull_obj_show (struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
+  int number_of_qset = 0;
+  struct scull_dev *dev = scull_device;
+  struct list_head *dptr;
+
+  /** Allocate first qset explicitly if need be */
+  if (list_empty (&dev->data))
+    INIT_LIST_HEAD (&dev->data);
+
+  list_for_each (dptr, &dev->data)
+  {
+    ++number_of_qset;
+  }
+
   return sprintf (buf, "The size is %lu and the number of qset is %d.\n",
 		  scull_device->size, number_of_qset);
 }
