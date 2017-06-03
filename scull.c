@@ -88,7 +88,7 @@ scull_trim (struct scull_dev *dev)
   list_for_each (dptr, &dev->data)
   {
     struct scull_qset *d = list_entry (dptr, struct scull_qset, list);
-    for (i = 0; i < dev->qset; ++i) /** TODO: ERROR dev->qset can be not allocated data */
+    for (i = 0; i < dev->qset; ++i) /** TODO: ERROR data[i] (i < dev->qset) can be not allocated data */
       kfree (d->data[i]);
     kfree (d->data);
   }
